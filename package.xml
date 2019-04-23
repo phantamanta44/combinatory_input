@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>combinatory_input</name>
+  <version>0.0.0</version>
+  <description>uses combinatory_processing to do controller stuff</description>
+  <maintainer email="egeng@wisc.edu">phanta</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>combinatory_processing</build_depend>
+  <build_export_depend>combinatory_processing</build_export_depend>
+  <exec_depend>combinatory_processing</exec_depend>
+
+  <export></export>
+</package>
