@@ -21,7 +21,7 @@ class StateRegister:
             self.state = state
 
 class HID:
-    def __init__(self, input_device, debug):
+    def __init__(self, input_device, debug=False):
         self.dev = input_device
         self.debug = debug
         self.state_lock = threading.RLock()

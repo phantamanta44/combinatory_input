@@ -1,2 +1,2 @@
-from .hid import gamepad
+from .hid import HID, gamepad
 from .codes import codes
