@@ -1,5 +1,5 @@
 from combinatory_processing import source_poll
-from inputs import devices, iter_unpack
+from struct import unpack
 import threading
 
 INITIAL_VALUES = {
@@ -43,31 +43,29 @@ class HID:
 
     def _poll(self):
         while True:
-            data = self.dev._get_data(self.dev._get_total_read_size())
-            if data:
-                axis_updates = []
-                flag_updates = []
-                for (_, _, event_type, code, value) in iter_unpack(data):
-                    if event_type == 0x03: # absolute axis
-                        axis_updates.append((code, value))
-                    elif event_type == 0x01: # button/key
-                        flag_updates.append((code, value))
+            with self.state_lock:
+                (_, value, event_type, control_id) = self.dev.read_event()
+                if event_type == 0x03: # absolute axis
+                    self._get_state_register('axis', control_id).write(value)
+                elif event_type == 0x01: # button/key
+                    self._get_state_register('flag', control_id).write(value)
                 if self.debug:
-                    print('%x: %x = %d' % (event_type, code, value))
-                with self.state_lock:
-                    for update in axis_updates:
-                        self._get_state_register('axis', update[0]).write(update[1])
-                    for update in flag_updates:
-                        self._get_state_register('flag', update[0]).write(update[1] == 1)
+                    print('%x: %d = %d' % (event_type, control_id, value))
             with self.thread_lock:
                 if self.dead:
                     break
 
     def __enter__(self):
+        self.dev.open_device()
         self.poll_thread.start()
         return API(self)
 
     def __exit__(self, e_type, value, traceback):
+        with self.state_lock:
+            try:
+                self.dev.close_device()
+            except IOError:
+                pass
         with self.thread_lock:
             self.dead = True
 
@@ -81,10 +79,23 @@ class API:
     def flag(self, num):
         return source_poll(self.hid._get_state_register('flag', num).poll)
 
-def gamepad(port=None, debug=False):
-    if port is None:
-        return HID(devices.gamepads[0], debug)
-    for device in devices:
-        if device.get_number() == port:
-            return HID(device, debug)
-    raise RuntimeError('Could not find gamepad on port ' + str(port))
+def gamepad(device_file=None, debug=False):
+    return HID(InputDevice(device_file), debug)
+
+EVENT_FORMAT = 'IhBB'
+
+class InputDevice:
+    def __init__(self, device_file):
+        self.device_file = device_file
+        self.file_handle = None
+
+    def read_event(self):
+        return unpack(EVENT_FORMAT, self.file_handle.read(8))
+
+    def open_device(self):
+        self.file_handle = open(self.device_file, 'r')
+        self.file_handle.read(192) # ignore header
+        print 'Device initialized: ' + self.device_file
+
+    def close_device(self):
+        self.file_handle.close()
