@@ -25,8 +25,9 @@ class StateRegister:
             self.state = state
 
 class HID:
-    def __init__(self, input_device):
+    def __init__(self, input_device, name=None):
         self.dev = input_device
+        self.name = name if name else str(type(input_device))
         self.state_lock = threading.RLock()
         self.state = {'axis': {}, 'flag': {}}
 
@@ -41,6 +42,7 @@ class HID:
 
     def __enter__(self):
         self.dev.open_device(self)
+        print 'Device initialized: ' + self.name
         return API(self)
 
     def __exit__(self, e_type, value, traceback):
@@ -90,12 +92,11 @@ class InputDevice:
         self.poll_thread = threading.Thread(target=poll)
         self.poll_thread.daemon = True
         self.poll_thread.start()
-        print 'Device initialized: ' + self.device_file
 
     def close_device(self):
         with self.thread_lock:
             self.dead = True
         self.poll_thread.join()
 
-def gamepad(device_file=None, debug=False):
-    return HID(InputDevice(device_file, debug))
+def device_joydev(device_file, name=None, debug=False):
+    return HID(InputDevice(device_file, debug), name if name else device_file)
