@@ -43,14 +43,15 @@ class HID:
 
     def _poll(self):
         while True:
-            with self.state_lock:
-                (_, value, event_type, control_id) = self.dev.read_event()
-                if event_type == 0x03: # absolute axis
+            (_, value, event_type, control_id) = self.dev.read_event()
+            if event_type == 0x02: # absolute axis
+                with self.state_lock:
                     self._get_state_register('axis', control_id).write(value)
-                elif event_type == 0x01: # button/key
+            elif event_type == 0x01: # button/key
+                with self.state_lock:
                     self._get_state_register('flag', control_id).write(value)
-                if self.debug:
-                    print('%x: %d = %d' % (event_type, control_id, value))
+            if self.debug:
+                print('%x: %d = %d' % (event_type, control_id, value))
             with self.thread_lock:
                 if self.dead:
                     break
@@ -61,13 +62,12 @@ class HID:
         return API(self)
 
     def __exit__(self, e_type, value, traceback):
-        with self.state_lock:
-            try:
-                self.dev.close_device()
-            except IOError:
-                pass
         with self.thread_lock:
             self.dead = True
+        try:
+            self.dev.close_device()
+        except IOError:
+            pass
 
 class API:
     def __init__(self, hid):
