@@ -53,6 +53,7 @@ class Finder():
         return results
 
     def find_any(self):
+        # type: () -> DeviceDescriptor
         all_results = self.find_all()
         if not all_results:
             raise ValueError('No joysticks found matching criteria!')
@@ -67,6 +68,9 @@ class DeviceDescriptor:
 
     def open_joydev(self, debug=False):
         return device_joydev(self.device_file, self.name, debug)
+
+    def __str__(self):
+        return '%s (%s) { %d buttons, %d axes }' % (self.name, self.device_file, self.btn_count, self.axis_count)
 
 def find_joysticks():
     return Finder(['/dev/input/by-id/' + dev for dev in os.listdir('/dev/input/by-id') \
