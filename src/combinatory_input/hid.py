@@ -80,6 +80,8 @@ class InputDevice:
                     read_buf.write(self.stream.read(read_buf.remaining()))
                     if read_buf.is_ready():
                         (_, value, event_type, control_id) = unpack(EVENT_FORMAT, read_buf.read())
+                        # topmost bit means it's passing initial state; distinction is not needed
+                        event_type = event_type & 0x7F
                         if event_type == 0x02: # absolute axis
                             hid.get_state_register('axis', control_id).write(value)
                         elif event_type == 0x01: # button/key
